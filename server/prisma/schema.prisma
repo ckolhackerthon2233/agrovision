@@ -1,0 +1,554 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Identity ─────────────────────────
+// `id` is the Clerk user id so the mobile app and API share identity.
+model User {
+  id        String   @id
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Everything a user owns (CRUD is scoped by ownerId).
+  farms          Farm[]
+  crops          Crop[]
+  livestock      Livestock[]
+  tasks          Task[]
+  listings       MarketListing[]
+  orders         Order[]
+  devices        Device[]
+  sensorReadings SensorReading[]
+  diseaseScans   DiseaseScan[]
+  transactions   Transaction[]
+  warehouses     Warehouse[]
+  inventoryItems InventoryItem[]
+  stockMovements StockMovement[]
+  suppliers      Supplier[]
+  purchaseOrders PurchaseOrder[]
+  shipments      Shipment[]
+  investments    Investment[]
+  tenders        Tender[]
+  bids           Bid[]
+  cooperatives   Cooperative[]
+  memberships    Membership[]
+  growAreas      GrowArea[]
+}
+
+// ───────────────────────── Farm (hub) ─────────────────────────
+enum FarmType {
+  CROP
+  LIVESTOCK
+  MIXED
+  AQUACULTURE
+  POULTRY
+}
+
+model Farm {
+  id           String   @id @default(cuid())
+  name         String
+  location     String
+  sizeHectares Float    @default(0)
+  type         FarmType @default(MIXED)
+  description  String?
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  crops        Crop[]
+  livestock    Livestock[]
+  tasks        Task[]
+  devices      Device[]
+  transactions Transaction[]
+  growAreas    GrowArea[]
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── Crops ─────────────────────────
+enum GrowthStage {
+  SEEDLING
+  VEGETATIVE
+  FLOWERING
+  MATURING
+  HARVESTED
+}
+
+model Crop {
+  id                  String        @id @default(cuid())
+  name                String
+  variety             String?
+  areaHectares        Float         @default(0)
+  growthStage         GrowthStage   @default(SEEDLING)
+  healthScore         Int           @default(100)
+  plantingDate        DateTime?
+  expectedHarvestDate DateTime?
+  notes               String?
+  owner               User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId             String
+  farm                Farm?         @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  farmId              String?
+  tasks               Task[]
+  diseaseScans        DiseaseScan[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── Livestock ─────────────────────────
+enum LivestockType {
+  CATTLE
+  GOAT
+  SHEEP
+  POULTRY
+  PIG
+  FISH
+}
+
+enum HealthStatus {
+  HEALTHY
+  MONITORING
+  SICK
+}
+
+model Livestock {
+  id           String        @id @default(cuid())
+  name         String
+  type         LivestockType @default(CATTLE)
+  breed        String?
+  count        Int           @default(1)
+  healthStatus HealthStatus  @default(HEALTHY)
+  notes        String?
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  farm         Farm?         @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  farmId       String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── Tasks ─────────────────────────
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  farm        Farm?        @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  farmId      String?
+  crop        Crop?        @relation(fields: [cropId], references: [id], onDelete: SetNull)
+  cropId      String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── Marketplace ─────────────────────────
+enum ListingCategory {
+  PRODUCE
+  INPUT
+  EQUIPMENT
+  LIVESTOCK
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+}
+
+model MarketListing {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  category    ListingCategory @default(PRODUCE)
+  price       Float           @default(0)
+  unit        String          @default("kg")
+  quantity    Float           @default(0)
+  status      ListingStatus   @default(ACTIVE)
+  owner       User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  orders      Order[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  FULFILLED
+  CANCELLED
+}
+
+model Order {
+  id         String        @id @default(cuid())
+  quantity   Float         @default(1)
+  totalPrice Float         @default(0)
+  buyerName  String?
+  status     OrderStatus   @default(PENDING)
+  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  listing    MarketListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId  String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([ownerId])
+  @@index([listingId])
+}
+
+// ───────────────────────── IoT ─────────────────────────
+enum DeviceType {
+  SOIL_SENSOR
+  WEATHER_STATION
+  IRRIGATION
+  CAMERA
+  OTHER
+}
+
+enum ConnectionType {
+  BLUETOOTH
+  WIFI
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  PAIRING
+}
+
+model Device {
+  id         String          @id @default(cuid())
+  name       String
+  type       DeviceType      @default(SOIL_SENSOR)
+  connection ConnectionType  @default(BLUETOOTH)
+  status     DeviceStatus    @default(OFFLINE)
+  address    String?
+  owner      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  farm       Farm?           @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  farmId     String?
+  readings   SensorReading[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+model SensorReading {
+  id         String   @id @default(cuid())
+  metric     String
+  value      Float
+  unit       String   @default("")
+  recordedAt DateTime @default(now())
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId   String
+  createdAt  DateTime @default(now())
+
+  @@index([ownerId])
+  @@index([deviceId])
+}
+
+// ───────────────────────── AI Disease Detection ─────────────────────────
+enum ScanStatus {
+  PENDING
+  COMPLETE
+  FAILED
+}
+
+model DiseaseScan {
+  id         String     @id @default(cuid())
+  imageUrl   String?
+  result     String?
+  confidence Float?
+  status     ScanStatus @default(PENDING)
+  owner      User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  crop       Crop?      @relation(fields: [cropId], references: [id], onDelete: SetNull)
+  cropId     String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── ERP / Accounting ─────────────────────────
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model Transaction {
+  id         String          @id @default(cuid())
+  type       TransactionType @default(EXPENSE)
+  category   String
+  amount     Float           @default(0)
+  note       String?
+  occurredAt DateTime        @default(now())
+  owner      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  farm       Farm?           @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  farmId     String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── Inventory / Warehouse ─────────────────────────
+model Warehouse {
+  id        String          @id @default(cuid())
+  name      String
+  location  String?
+  owner     User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId   String
+  items     InventoryItem[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+model InventoryItem {
+  id           String          @id @default(cuid())
+  name         String
+  sku          String?
+  quantity     Float           @default(0)
+  unit         String          @default("unit")
+  reorderLevel Float           @default(0)
+  owner        User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  warehouse    Warehouse?      @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  warehouseId  String?
+  movements    StockMovement[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model StockMovement {
+  id        String        @id @default(cuid())
+  type      MovementType  @default(IN)
+  quantity  Float         @default(0)
+  reason    String?
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId   String
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    String
+  createdAt DateTime      @default(now())
+
+  @@index([ownerId])
+  @@index([itemId])
+}
+
+// ───────────────────────── Supply Chain ─────────────────────────
+model Supplier {
+  id             String          @id @default(cuid())
+  name           String
+  contact        String?
+  phone          String?
+  email          String?
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId        String
+  purchaseOrders PurchaseOrder[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id         String              @id @default(cuid())
+  reference  String?
+  status     PurchaseOrderStatus @default(DRAFT)
+  total      Float               @default(0)
+  owner      User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  supplier   Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId String
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@index([ownerId])
+  @@index([supplierId])
+}
+
+// ───────────────────────── Logistics ─────────────────────────
+enum ShipmentStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+model Shipment {
+  id          String         @id @default(cuid())
+  reference   String?
+  origin      String
+  destination String
+  carrier     String?
+  status      ShipmentStatus @default(PENDING)
+  owner       User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── Investments ─────────────────────────
+enum InvestmentStatus {
+  OPEN
+  FUNDED
+  CLOSED
+}
+
+model Investment {
+  id             String           @id @default(cuid())
+  title          String
+  description    String?
+  amount         Float            @default(0)
+  expectedReturn Float?
+  status         InvestmentStatus @default(OPEN)
+  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId        String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([ownerId])
+}
+
+// ───────────────────────── Tenders ─────────────────────────
+enum TenderStatus {
+  OPEN
+  CLOSED
+  AWARDED
+}
+
+model Tender {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  budget      Float        @default(0)
+  deadline    DateTime?
+  status      TenderStatus @default(OPEN)
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  bids        Bid[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([ownerId])
+}
+
+model Bid {
+  id         String   @id @default(cuid())
+  bidderName String?
+  amount     Float    @default(0)
+  note       String?
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId    String
+  tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([tenderId])
+}
+
+// ───────────────────────── Cooperatives ─────────────────────────
+model Cooperative {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  memberships Membership[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([ownerId])
+}
+
+enum MemberRole {
+  MEMBER
+  ADMIN
+  CHAIR
+}
+
+model Membership {
+  id            String      @id @default(cuid())
+  memberName    String
+  role          MemberRole  @default(MEMBER)
+  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId       String
+  cooperative   Cooperative @relation(fields: [cooperativeId], references: [id], onDelete: Cascade)
+  cooperativeId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([ownerId])
+  @@index([cooperativeId])
+}
+
+// ───────────────────────── Grow Areas (zones) ─────────────────────────
+model GrowArea {
+  id           String   @id @default(cuid())
+  name         String
+  sizeHectares Float    @default(0)
+  notes        String?
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  farm         Farm?    @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  farmId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ownerId])
+}

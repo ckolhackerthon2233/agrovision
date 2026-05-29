@@ -1,0 +1,28 @@
+# Local Postgres for AgroVision.
+#   docker compose up -d        # start (creates the DB)
+#   docker compose down         # stop (keeps data)
+#   docker compose down -v      # stop + wipe data
+#
+# Exposed on host port 5433 to avoid clashing with any Postgres already on 5432.
+# DATABASE_URL in .env must match these credentials.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: agrovision-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: agrovision
+      POSTGRES_DB: agrovision
+    ports:
+      - "5433:5432"
+    volumes:
+      - agrovision_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d agrovision"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  agrovision_pgdata:

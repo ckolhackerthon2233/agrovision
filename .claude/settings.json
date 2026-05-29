@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"pnpm: $\\(pnpm --version 2>&1\\)\")",
+      "Bash(sed -n '/Ignored build scripts/,/approve-builds/p' \"C:/Users/FELIXC~1/AppData/Local/Temp/claude/c--Users-Felix-cole-Desktop-4-agrovision-app/08fda544-d8fd-4687-8e27-139b327f8830/tasks/bz22vier1.output\" 2>/dev/null; echo \"--- tail ---\"; tail -6 \"C:/Users/FELIXC~1/AppData/Local/Temp/claude/c--Users-Felix-cole-Desktop-4-agrovision-app/08fda544-d8fd-4687-8e27-139b327f8830/tasks/bz22vier1.output\" 2>/dev/null)",
+      "Bash(pnpm update *)",
+      "Bash(pnpm run *)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\FELIXC~1\\AppData\\Local\\Temp\\claude\\c--Users-Felix-cole-Desktop-4-agrovision-app\\08fda544-d8fd-4687-8e27-139b327f8830\\tasks"
+    ]
+  }
+}
