@@ -37,6 +37,13 @@
     },
     "router": {
       "root": "src"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "092afe4e-e00c-4fa9-9b5d-7a2ffe89f4c4"
+      }
+    },
+    "owner": "zadmin"
   }
 }
