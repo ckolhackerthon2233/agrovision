@@ -6,11 +6,19 @@
     "preview": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://server-lac-one.vercel.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_d29uZHJvdXMtYW5jaG92eS03OS5jbGVyay5hY2NvdW50cy5kZXYk"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://server-lac-one.vercel.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_d29uZHJvdXMtYW5jaG92eS03OS5jbGVyay5hY2NvdW50cy5kZXYk"
       }
     }
   }
